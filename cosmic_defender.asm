@@ -58,7 +58,7 @@ Reset:
     sta PlayerColor
 
     ; Initialize enemy
-    lda #40
+    lda #60             ; Start safely within boundaries
     sta EnemyX
     lda #170            ; Start near top of visible area
     sta EnemyY
@@ -224,7 +224,7 @@ ProcessInput:
     and #%01000000
     bne CheckRight
     lda PlayerX
-    cmp #15             ; Left boundary (wider margin for 8-pixel sprite)
+    cmp #30             ; Left boundary (much wider margin to keep sprite fully visible)
     bcc CheckRight
     dec PlayerX
     dec PlayerX
@@ -235,7 +235,7 @@ CheckRight:
     and #%10000000
     bne CheckFire
     lda PlayerX
-    cmp #145            ; Right boundary (account for sprite width)
+    cmp #135            ; Right boundary (account for sprite width)
     bcs CheckFire
     inc PlayerX
     inc PlayerX
@@ -283,7 +283,7 @@ MoveLeft:
     dec EnemyX
     dec EnemyX
     lda EnemyX
-    cmp #8
+    cmp #30             ; Same boundary as player
     bcs DoneHorizontal
     lda #0
     sta EnemyDir
@@ -293,7 +293,7 @@ MoveRight:
     inc EnemyX
     inc EnemyX
     lda EnemyX
-    cmp #150
+    cmp #135            ; Same boundary as player
     bcc DoneHorizontal
     lda #1
     sta EnemyDir
@@ -380,7 +380,11 @@ XCheck:
     lda Random
     and #%01111111
     clc
-    adc #20
+    adc #30             ; Ensure enemy spawns within safe left boundary
+    cmp #135            ; Check if it would go past right boundary
+    bcc .XPosOK
+    lda #80             ; If too far right, spawn in center
+.XPosOK:
     sta EnemyX
     
     ; Deactivate missile
@@ -454,42 +458,50 @@ PositionSprites:
     rts
 
 ;------------------------------------------------------------------------------
-; Position routines (simplified)
+; Position routines
 ;------------------------------------------------------------------------------
 ; SetHorizPos - Position sprite horizontally
 ; A = desired X position (0-159)
 ; X = object to position (0=P0, 1=P1, 2=M0, 3=M1, 4=Ball)
 ;------------------------------------------------------------------------------
 SetHorizPos:
+    ; Ensure minimum X position
+    cmp #0
+    bne .NotZero
+    lda #1              ; Minimum X = 1 to prevent wraparound
+.NotZero:
+    sta WSYNC           ; Start at left edge
     sec
-    sta WSYNC
-DivideLoop:
-    sbc #15
-    bcs DivideLoop
+.DivLoop:
+    sbc #15             ; Divide by 15
+    bcs .DivLoop
+    
+    ; Calculate fine adjust
     eor #7
     asl
     asl
     asl
     asl
     
+    ; Store based on object type
     cpx #0
-    bne NotP0
+    bne .NotP0
     sta HMP0
     sta RESP0
     rts
-NotP0:
+.NotP0:
     cpx #1
-    bne NotP1
+    bne .NotP1
     sta HMP1
     sta RESP1
     rts
-NotP1:
+.NotP1:
     cpx #2
-    bne NotM0
+    bne .NotM0
     sta HMM0
     sta RESM0
     rts
-NotM0:
+.NotM0:
     rts
 
 ;==============================================================================
@@ -525,4 +537,3 @@ EnemySprite:
     .word Reset         ; IRQ
 
     END
-
