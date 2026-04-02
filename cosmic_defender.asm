@@ -64,7 +64,7 @@ Reset:
     sta EnemyY
     lda #0
     sta EnemyDir
-    lda #$32            ; Purple/red cosmic color
+    lda #$32            ; Yellow
     sta EnemyColor
 
     ; Initialize missile as inactive
@@ -414,7 +414,7 @@ UpdateColors:
     inc FlashCounter
     lda FlashCounter
     and #$1F
-    sta EnemyColor      ; Cycle enemy color for cosmic effect
+    sta EnemyColor
     rts
 
 ;------------------------------------------------------------------------------
